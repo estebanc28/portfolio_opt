@@ -101,6 +101,7 @@ Inicio → Configuración del Portafolio → Optimización → Resultados finale
 - La fila **Peso (%)** muestra **solo** activos con peso final **> 0 %** en el portafolio optimizado (más **Total**).
 - En **No seleccionados para el análisis** se muestra la **métrica de descartes**: cantidad de tickers que usted sí incluyó en el multiselect pero que quedaron con **peso 0 %** en el óptimo, seguida de la lista de tickers.
 - Otras listas: **Sin peso en el portafolio óptimo (< 0,1 %)** (detalle por umbral), **Descartados al descargar datos** (fallos de Yahoo).
+- **Evolución histórica comparativa:** el eje X usa la **fecha completa** del índice de precios (no solo año-mes), para que las curvas con datos **semanales o diarios** no se vean escalonadas por colisión de etiquetas.
 
 ---
 

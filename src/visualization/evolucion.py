@@ -4,6 +4,7 @@ Gráfico comparativo de evolución histórica (Funcionalidad 4).
 
 from __future__ import annotations
 
+import pandas as pd
 import plotly.graph_objects as go
 
 from src.app.texto_formato import capitalizar_palabras_largas
@@ -18,8 +19,20 @@ COLOR_OPTIMIZADO = "#00e5ff"
 COLOR_BENCHMARK = "#ffd54f"
 
 
-def _etiquetas_tiempo(serie) -> list[str]:
-    return [f"{idx.strftime('%Y-%m')}" if hasattr(idx, "strftime") else str(idx) for idx in serie.index]
+def _fechas_eje_x(serie: pd.Series) -> pd.DatetimeIndex | list:
+    """
+    Fechas para el eje X del gráfico.
+
+    Antes se usaba solo ``%Y-%m``, lo que agrupaba semanas y días bajo la misma
+    etiqueta y producía curvas escalonadas; con fechas completas Plotly interpola bien.
+    """
+    idx = serie.index
+    if isinstance(idx, pd.DatetimeIndex):
+        return idx
+    try:
+        return pd.to_datetime(idx, errors="raise")
+    except (ValueError, TypeError):
+        return [str(i) for i in idx]
 
 
 def crear_grafico_evolucion_historica(datos: DatosResultadosFinales) -> go.Figure:
@@ -37,10 +50,10 @@ def crear_grafico_evolucion_historica(datos: DatosResultadosFinales) -> go.Figur
         )
 
     for serie, nombre, color, dash in series:
-        fechas = _etiquetas_tiempo(serie)
+        fechas_x = _fechas_eje_x(serie)
         fig.add_trace(
             go.Scatter(
-                x=fechas,
+                x=fechas_x,
                 y=serie.values,
                 mode="lines",
                 name=nombre,
@@ -62,6 +75,7 @@ def crear_grafico_evolucion_historica(datos: DatosResultadosFinales) -> go.Figur
         ),
         xaxis=dict(
             title=_CAP("Tiempo"),
+            type="date",
             tickfont=dict(color=COLOR_TEXTO),
             gridcolor="#2a2a2a",
         ),

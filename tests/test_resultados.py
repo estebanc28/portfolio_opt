@@ -9,6 +9,7 @@ from src.finance.resultados import (
     calcular_resultados_finales,
     construir_tabla_pesos_horizontal,
 )
+from src.visualization.evolucion import crear_grafico_evolucion_historica
 from src.finance.portafolio import UMBRAL_PESO_MINIMO, filtrar_y_renormalizar_pesos, pesos_iguales
 
 
@@ -80,3 +81,20 @@ def test_resultados_finales_tres_series():
     assert datos.evolucion_benchmark is not None
     assert len(datos.evolucion_igual) == len(datos.evolucion_optimizado)
     assert datos.ticker_benchmark == "^GSPC"
+
+
+def test_grafico_evolucion_eje_x_fechas_sin_colapsar_a_mes():
+    """El gráfico debe usar fechas completas en x para no duplicar meses (sem/di)."""
+    precios = _precios_ejemplo()
+    datos = calcular_resultados_finales(
+        precios,
+        activos_validos=["A", "B", "C"],
+        activos_seleccionados=["A", "B"],
+        tasa_libre_riesgo_anual=0.04,
+        ticker_benchmark="^GSPC",
+    )
+    fig = crear_grafico_evolucion_historica(datos)
+    x0 = fig.data[0].x
+    assert len(x0) == len(datos.evolucion_igual)
+    # Cada punto con fecha distinta (24 meses distintos en el ejemplo MS)
+    assert len(set(x0)) == len(x0)

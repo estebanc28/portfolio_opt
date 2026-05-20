@@ -20,7 +20,7 @@ def obtener_resultados_finales(
     tasa_libre_riesgo_anual: float,
     ticker_benchmark: str,
     periodos_por_anio: int,
-    _version: int = 8,
+    _version: int = 9,
 ) -> tuple[
     pd.DataFrame,
     object,
