@@ -16,7 +16,7 @@ def mostrar() -> None:
         "Esta aplicación permite analizar y optimizar un portafolio de inversión "
         "con datos históricos descargados desde **Yahoo Finance**. Puede incorporar "
         "hasta **20 activos** (ingresados separados por `;`), elegir **temporalidad** "
-        "(diaria, semanal o mensual), definir pesos forzados opcionales (Modo A) y "
+        "(diaria, semanal o mensual), definir pesos forzados opcionales y "
         "comparar contra un benchmark (SPY, QQQ, IWM o DIA)."
     )
 
