@@ -12,15 +12,21 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from src.finance.metricas import MESES_POR_ANIO, calcular_matriz_covarianza
+from src.finance.metricas import (
+    PERIODOS_POR_ANIO_DEFECTO,
+    calcular_matriz_covarianza,
+)
 
 
-def calcular_mu_sigma_anual(rendimientos: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+def calcular_mu_sigma_anual(
+    rendimientos: pd.DataFrame,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
+) -> tuple[np.ndarray, np.ndarray]:
     """Vectores μ y matriz Σ anualizados para optimización y métricas."""
-    media_mensual = rendimientos.mean()
-    mu = ((1.0 + media_mensual) ** MESES_POR_ANIO - 1.0).values.astype(float)
-    cov_mensual = calcular_matriz_covarianza(rendimientos).values.astype(float)
-    sigma = cov_mensual * MESES_POR_ANIO
+    media_periodo = rendimientos.mean()
+    mu = ((1.0 + media_periodo) ** periodos_por_anio - 1.0).values.astype(float)
+    cov_periodo = calcular_matriz_covarianza(rendimientos).values.astype(float)
+    sigma = cov_periodo * periodos_por_anio
     return mu, sigma
 
 

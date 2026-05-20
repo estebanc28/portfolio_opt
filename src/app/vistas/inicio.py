@@ -13,16 +13,17 @@ def mostrar() -> None:
 
     st.markdown("### 🎯 Descripción General")
     st.write(
-        "Este proyecto tiene como objetivo construir una aplicación interactiva que "
-        "permita analizar y optimizar un portafolio de inversión a partir de datos "
-        "históricos de precios de **20 empresas** y del índice **S&P 500**."
+        "Esta aplicación permite analizar y optimizar un portafolio de inversión "
+        "con datos históricos descargados desde **Yahoo Finance**. Puede incorporar "
+        "hasta **20 activos** (ingresados separados por `;`), elegir **temporalidad** "
+        "(diaria, semanal o mensual), definir pesos forzados opcionales (Modo A) y "
+        "comparar contra un benchmark (SPY, QQQ, IWM o DIA)."
     )
 
     st.markdown("### 📋 Funcionalidades Disponibles")
     funcionalidades = [
         ("🏠", "Inicio"),
-        ("📊", "Carga y Preparación de Datos"),
-        ("⚙️", "Inputs y Configuración Inicial"),
+        ("⚙️", "Configuración del Portafolio"),
         ("🎯", "Optimización y Frontera Eficiente"),
         ("📋", "Resultados Finales y Validación Histórica"),
     ]
@@ -31,7 +32,7 @@ def mostrar() -> None:
 
     st.markdown("### 🚀 Comenzar")
     st.info(
-        "Selecciona **Carga y Preparación de Datos** en el menú lateral para validar "
-        "el archivo CSV y preparar el universo de activos. Luego avanza por cada "
-        "sección en orden hasta llegar a los resultados finales."
+        "Selecciona **Configuración del Portafolio** en el menú lateral: allí descargas "
+        "los precios, eliges activos, benchmark y tasa libre de riesgo en un solo paso. "
+        "Luego avanza a optimización y resultados finales."
     )

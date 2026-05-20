@@ -23,7 +23,7 @@ def _etiquetas_tiempo(serie) -> list[str]:
 
 
 def crear_grafico_evolucion_historica(datos: DatosResultadosFinales) -> go.Figure:
-    """Tres líneas: pesos iguales, optimizado y benchmark S&P 500."""
+    """Tres líneas: pesos iguales, optimizado y benchmark (ticker según configuración)."""
     fig = go.Figure()
 
     series = [
@@ -31,8 +31,9 @@ def crear_grafico_evolucion_historica(datos: DatosResultadosFinales) -> go.Figur
         (datos.evolucion_optimizado, _CAP("Portafolio optimizado"), COLOR_OPTIMIZADO, "solid"),
     ]
     if datos.evolucion_benchmark is not None:
+        nombre_bench = _CAP(f"{datos.ticker_benchmark} (benchmark)")
         series.append(
-            (datos.evolucion_benchmark, _CAP("S&P 500 (Benchmark)"), COLOR_BENCHMARK, "dot"),
+            (datos.evolucion_benchmark, nombre_bench, COLOR_BENCHMARK, "dot"),
         )
 
     for serie, nombre, color, dash in series:

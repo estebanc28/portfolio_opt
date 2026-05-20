@@ -1,5 +1,5 @@
 """
-Aplicación Streamlit — Portafolio de inversión (Markowitz).
+Aplicación Streamlit — Optimización de portafolio (Markowitz).
 Punto de entrada con navegación lateral por funcionalidades.
 """
 
@@ -17,10 +17,10 @@ if str(RAIZ) not in sys.path:
 from src.app.navigation import renderizar_menu
 from src.app.scroll import aplicar_scroll_al_entrar_vista
 from src.app.theme import CSS_TEMA
-from src.app.vistas import carga_datos, inicio, inputs, optimizacion, resultados
+from src.app.vistas import configuracion, inicio, optimizacion, resultados
 
 st.set_page_config(
-    page_title="Portafolio Markowitz",
+    page_title="Portfolio Opt — Markowitz",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -43,8 +43,7 @@ aplicar_scroll_al_entrar_vista(opcion)
 
 RUTAS: dict[str, Callable[[], None]] = {
     "Inicio": inicio.mostrar,
-    "Carga y Preparación de Datos": carga_datos.mostrar,
-    "Inputs y Configuración Inicial": inputs.mostrar,
+    "Configuración del Portafolio": configuracion.mostrar,
     "Optimización y Frontera Eficiente": optimizacion.mostrar,
     "Resultados Finales y Validación Histórica": resultados.mostrar,
 }

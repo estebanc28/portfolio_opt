@@ -20,7 +20,7 @@ from src.finance.markowitz import (
     minimizar_varianza_retorno_objetivo,
     optimizar_max_sharpe_mv,
 )
-from src.finance.metricas import calcular_rendimientos
+from src.finance.metricas import PERIODOS_POR_ANIO_DEFECTO, calcular_rendimientos
 from src.finance.portafolio import filtrar_y_renormalizar_pesos, pesos_iguales
 
 
@@ -62,6 +62,7 @@ def calcular_frontera_eficiente(
     tasa_libre_riesgo_anual: float,
     pesos_forzados: dict[str, float] | None = None,
     n_puntos: int = 100,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> DatosFronteraEficiente:
     """
     Calcula la frontera (μ–Σ) y la CML tangente al máximo Sharpe.
@@ -69,7 +70,7 @@ def calcular_frontera_eficiente(
     rendimientos = calcular_rendimientos(precios)
     activos = list(rendimientos.columns)
     forzados = pesos_forzados or {}
-    mu, sigma = calcular_mu_sigma_anual(rendimientos)
+    mu, sigma = calcular_mu_sigma_anual(rendimientos, periodos_por_anio)
 
     ret_min = float(mu.min())
     ret_max = float(mu.max())

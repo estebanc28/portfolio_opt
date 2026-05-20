@@ -17,14 +17,17 @@ def obtener_grafico_frontera(
     activos: tuple[str, ...],
     pesos_forzados: tuple[tuple[str, float], ...],
     tasa_libre_riesgo_anual: float,
-    _version: int = 13,
+    periodos_por_anio: int,
+    _version: int = 14,
 ) -> object:
     """Calcula y cachea la figura de frontera eficiente + CML."""
     columnas = [a for a in activos if a in precios.columns]
     sub = precios[columnas]
     forzados = dict(pesos_forzados)
 
-    datos = calcular_frontera_eficiente(sub, tasa_libre_riesgo_anual, forzados)
+    datos = calcular_frontera_eficiente(
+        sub, tasa_libre_riesgo_anual, forzados, periodos_por_anio=periodos_por_anio
+    )
     return crear_grafico_frontera_cml(datos)
 
 

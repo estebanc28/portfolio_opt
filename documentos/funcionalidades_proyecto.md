@@ -1,242 +1,111 @@
- # 📄 Documento de Funcionalidades del Proyecto 
+# ESPECIFICACIÓN DE REQUERIMIENTOS Y FUNCIONALIDADES: PORTAFOLIO DINÁMICO MPT
 
-### **Portafolio de Inversión con Optimización de Markowitz** 
+## 1. Contexto del Proyecto
 
-**Fecha:** Mayo 2026 
+El proyecto calcula un portafolio eficiente basado en la **Teoría Moderna de Portafolios (MPT)** de Markowitz. Los precios se obtienen desde **Yahoo Finance** (`yfinance`). El sistema compara el portafolio optimizado contra uno de **pesos iguales** y contra un **benchmark** seleccionable.
 
-**Tecnologías:** Python + Streamlit + Plotly + Pandas + NumPy + SciPy 
-
-
+- Punto de entrada: `streamlit run portfolio_opt.py`
 
 ---
 
+## 2. Estado de implementación
 
-
-## 🎯 Descripción General
-
-
-
-Este proyecto tiene como objetivo construir una aplicación interactiva que permita analizar y optimizar un portafolio de inversión a partir de datos históricos de precios de **20 empresas** y del índice **S&P 500**.
-
-
-
-A diferencia de otros enfoques tradicionales, **no se utilizaran bibliotecas externas como PyPortfolioOpt**. 
-
-En su lugar, se implementaran todos los cálculos de riesgo, rendimiento y optimización directamente en **Python puro** (NumPy + SciPy), para no depender de librerías de terceros que puedan quedar obsoletas.
-
-
-
-La aplicación contará con dos decisiones de diseño globales:
-
-
-
-1. **Tema oscuro (fondo negro):** 
-
-   Diseño inspirado en terminales financieras tipo Bloomberg, con colores de contraste (azul, verde, rojo, morado, blanco). 
-
-2. **Navegación por menú lateral en Streamlit:** 
-
-   Cada funcionalidad principal tendrá su propia sección: 
-
-   - Inputs y Configuración Inicial 
-
-   - Análisis de Riesgos y Dependencias 
-
-   - Optimización y Frontera Eficiente 
-
-   - Resultados Finales y Validación Histórica 
-
-
+| Fase | Estado | Contenido |
+|------|--------|-----------|
+| **Fase 1** | Implementada | Descarga `yfinance`, tickers por `;`, benchmark, limpieza de huecos |
+| **Fase 2** | Implementada | Panel único **Configuración del Portafolio** |
+| **Fase 3** | Implementada | Frecuencias diaria / semanal / mensual y anualización parametrizada |
+| Fase 4+ | Pendiente | Caché persistente, exportar CSV, etc. |
 
 ---
 
+## 3. Configuración del Portafolio
 
+### 3.1 Datos de mercado
 
-## 🛠 Funcionalidad 0: Carga y Preparación de Datos
+| Control | Descripción |
+|---------|-------------|
+| **Tickers** | Texto separado por `;` (máx. **20** en portafolio). Se normalizan a **MAYÚSCULAS** al escribir. |
+| **Temporalidad** | `selectbox`: **Mensual**, **Semanal** o **Diaria**. |
+| **Fechas** | Inicio y fin del histórico. |
+| **Límites de rango** | Diaria: máx. **730 días** (~2 años). Semanal: máx. **12 años**. Mensual: sin tope estricto en UI. |
 
+| Temporalidad | Intervalo Yahoo | Periodos/año (anualización) | Mín. observaciones |
+|--------------|-----------------|----------------------------|-------------------|
+| Mensual | `1mo` | 12 | 12 |
+| Semanal | `1wk` | 52 | 52 |
+| Diaria | `1d` | 252 | 252 |
 
+### 3.2 Benchmark y descarga
 
-**Objetivo:** Garantizar que el análisis se realice únicamente con datos consistentes y completos.
+| Control | Descripción |
+|---------|-------------|
+| **Benchmark** | SPY, QQQ, IWM, DIA (no cuenta en el límite de 20). Entra en la firma de descarga. |
+| **Descargar datos de mercado** | Botón **arriba** (tras tickers, temporalidad, fechas y benchmark). Solo descarga y actualiza precios en sesión; si cambian parámetros de descarga respecto a la memoria, hay que volver a pulsarlo antes de confirmar abajo. |
 
+### 3.3 Universo y pesos — Modo A
 
+- Multiselect de activos válidos tras la descarga; tras cada **Descargar datos de mercado** se seleccionan por defecto **todos** los activos del nuevo universo (se reinicia la selección del widget).
+- **Un campo de % por cada activo descargado** (sin botón intermedio). Los pesos que cuentan para la suma y la validación son solo los de los activos **incluidos** en el multiselect.
+- Pesos forzados opcionales (suma ≤ 100 % sobre los incluidos); Markowitz completa el resto.
 
-### Acciones:
+### 3.4 Tasa libre de riesgo y confirmación final
 
-- Cargar automáticamente el archivo CSV con datos históricos (fechas + 20 empresas + S&P 500). 
+| Control | Descripción |
+|---------|-------------|
+| **Tasa libre de riesgo** | Anual, default **4 %**; se muestra equivalente **por periodo** según la frecuencia elegida en 3.1. |
+| **Confirmar configuración del portafolio** | Botón al **final** de la pantalla: fija multiselect, pesos y tasa para optimización y resultados. No descarga Yahoo; exige que los datos en sesión coincidan con la firma actual (tickers, fechas, benchmark, temporalidad). |
+| **Multiselect** | Debe haber **al menos un activo** incluido para habilitar la confirmación. |
 
-- Validar si existen datos faltantes en alguna empresa. 
-
-- **Excluir automáticamente** los activos con datos incompletos. 
-
-- Generar un mensaje informativo al usuario, por ejemplo: 
-
-  *“Se omitió la empresa XYZ por datos incompletos.”* 
-
-- Continuar a la Funcionalidad 1 únicamente con los activos válidos.
-
-
-
----
-
-
-
-## 🧩 Funcionalidad 1: Inputs y Configuración Inicial
-
-
-
-**Objetivo:** Definir el universo de inversión y los supuestos principales del modelo.
-
-
-
-### Acciones:
-
-- Mostrar un listado de empresas disponibles (ya filtradas en la Funcionalidad 0). 
-
-- Permitir que el usuario **deseleccione** activos que no quiere incluir. 
-
-- Permitir que el usuario **fuerce pesos específicos** para ciertos activos (ejemplo: Visa = 15%). 
-
-- Input para ingresar la **tasa libre de riesgo** (valor por defecto ≈ Treasury 10 años ≈ 4% anual). 
-
-  - Internamente, esta tasa se convierte a **mensual** para los cálculos. 
-
-- Botón de confirmación para fijar el universo de activos y avanzar al análisis.
-
-
+- Tras cambiar tickers, fechas, benchmark o temporalidad, use primero **Descargar datos de mercado** y luego confirme abajo.
 
 ---
 
+## 4. Limpieza de datos
 
-
-## 📉 Funcionalidad 2: Análisis de Riesgos y Dependencias
-
-
-
-**Objetivo:** Comprender cómo interactúan los activos y qué implicaciones tiene la diversificación.
-
-
-
-### Acciones:
-
-- Mostrar la **matriz de correlaciones / covarianzas** como un **mapa de calor** sobre fondo negro. 
-
-   - Rojo → correlaciones negativas 
-
-   - Verde/Azul → correlaciones positivas 
-
-- Generar una **tabla comparativa** entre: 
-
-   - Portafolio de **pesos iguales** 
-
-   - Portafolio **optimizado** (cálculo en Python puro) 
-
-- Mostrar métricas **anualizadas** para ambos escenarios: 
-
-   - Rendimiento esperado 
-
-   - Volatilidad (riesgo) 
-
-   - Ratio de Sharpe 
-
-   - Las métricas de la tabla y el tooltip del gráfico (frontera) usan la **misma fórmula μ–Σ** de Markowitz.
-
-
+1. Alineación por frecuencia (`ME` / `W-FRI` / `D`).
+2. Relleno de huecos cortos (límite según frecuencia).
+3. Reintento por ticker con descarga individual.
+4. Recorte al período común de cotización.
 
 ---
 
+## 5. Backend — anualización (Fase 3)
 
+| Módulo | Rol |
+|--------|-----|
+| `src/finance/periodicidad.py` | Metadatos de frecuencia y validación de rangos |
+| `src/finance/metricas.py` | `periodos_por_anio` en retorno y volatilidad |
+| `src/finance/markowitz.py` | μ y Σ escalados con `periodos_por_anio` |
+| `src/finance/configuracion.py` | `anual_a_periodo(tasa, P)` |
+| `src/data/yfinance_loader.py` | Descarga según `interval` |
 
-## 📈 Funcionalidad 3: Optimización y Frontera Eficiente
+**Fórmulas (P = periodos por año):**
 
+- Rendimiento anual: `[ Π (1 + r_t) ]^(P/n) − 1`
+- Volatilidad anual: `σ_periodo × √P`
+- Tasa libre de riesgo por periodo: `(1 + r_anual)^(1/P) − 1`
 
-
-**Objetivo:** Visualizar la lógica de la optimización de Markowitz y el impacto de la tasa libre de riesgo.
-
-
-
-### Acciones:
-
-- Cálculo de la **frontera eficiente** mediante **optimización cuadrática con SciPy**. 
-
-- Gráfico sobre fondo negro que muestre: 
-
-   - Curva completa de la frontera eficiente (riesgo vs. rendimiento). 
-
-   - Punto del **portafolio de pesos iguales**. 
-
-   - Punto del **portafolio optimizado** (máxima razón de Sharpe). 
-
-- Inclusión de la **Línea del Mercado de Capitales (CML)** utilizando la tasa libre de riesgo definida en la Funcionalidad 1.
-
-- Bloque **Interpretación del Gráfico** debajo del gráfico (dos tarjetas): frontera eficiente y CML, con viñetas explicativas y capitalización fija según el diseño de referencia (no aplica la regla de la leyenda).
-
-- En la **leyenda** del gráfico, capitalizar la primera letra de cada palabra con más de 4 letras (siglas como CML se conservan).
-
-
+`session_state['periodos_por_anio']` alimenta optimización y resultados.
 
 ---
 
+## 6. Flujo de navegación
 
+```
+Inicio → Configuración del Portafolio → Optimización → Resultados finales
+```
 
-## 📊 Funcionalidad 4: Resultados Finales y Validación Histórica
+### Resultados finales — tabla de pesos
 
-
-
-**Objetivo:** Mostrar los resultados del portafolio optimizado y compararlos con el mercado.
-
-
-
-### Acciones:
-
-- Tabla con los **pesos porcentuales del portafolio optimizado**: 
-
-   - Solo se muestran los activos seleccionados. 
-
-   - Los activos no elegidos quedan con peso 0. 
-
-- Tabla **horizontal** de pesos del portafolio optimizado (solo columnas con peso **&gt; 0 %**; respeta pesos fijos).
-
-   - Tras optimizar, activos con peso **&lt; 0,1 %** se eliminan del portafolio final (se muestran como **0 %**), se renormalizan los restantes y se listan como *no utilizados*.
-
-- Gráfico de evolución histórica (valor inicial **$1,000**, ventana del CSV) con fondo negro, ejes *Tiempo* y *Valor Acumulado*, para: 
-
-   - Portafolio de pesos iguales (entre activos seleccionados) 
-
-   - Portafolio optimizado (con restricciones si las hubiera) 
-
-   - S&P 500 como **benchmark** 
-
-- La tabla va **arriba** y el gráfico **debajo**.
-
-- Responder explícitamente la pregunta: 
-
-  > **“Si hubieras invertido $1,000 en el periodo seleccionado, ¿cuánto tendrías hoy?”**
-
-- **Nota explicativa** al final del gráfico (dos columnas): composición del portafolio de pesos iguales y del optimizado.
-
-
+- La fila **Peso (%)** muestra **solo** activos con peso final **> 0 %** en el portafolio optimizado (más **Total**).
+- En **No seleccionados para el análisis** se muestra la **métrica de descartes**: cantidad de tickers que usted sí incluyó en el multiselect pero que quedaron con **peso 0 %** en el óptimo, seguida de la lista de tickers.
+- Otras listas: **Sin peso en el portafolio óptimo (< 0,1 %)** (detalle por umbral), **Descartados al descargar datos** (fallos de Yahoo).
 
 ---
 
+## 7. Fases futuras
 
-
-## 🧭 Propósito del Documento
-
-
-
-Este documento funciona como la guía estructural del proyecto y permite:
-
-
-
-- Pensar antes de programar. 
-
-- Definir claramente qué se quiere construir. 
-
-- Comunicar la visión a la Inteligencia Artificial para que genere código de forma precisa. 
-
-- Asegurar que todas las funcionalidades se integren de manera coherente.
-
-
-
----
-
+- Caché de descargas (`@st.cache_data`) entre sesiones.
+- Exportar CSV de series descargadas.
+- Mejoras de UX al cambiar temporalidad (ajuste automático de fechas).

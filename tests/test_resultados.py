@@ -26,6 +26,22 @@ def _precios_ejemplo() -> pd.DataFrame:
 
 def test_tabla_omite_activos_con_peso_cero():
     pesos = pd.Series({"A": 0.6, "B": 0.4})
+    tabla = construir_tabla_pesos_horizontal(["A", "B", "C"], ["A", "B", "C"], pesos)
+    assert "C" not in tabla.columns
+    assert tabla.loc["Peso (%)", "A"] == "60.00%"
+    assert tabla.loc["Peso (%)", "Total"] == "100.00%"
+
+
+def test_tabla_incluye_solo_positivos_si_uno_queda_en_cero():
+    pesos = pd.Series({"A": 0.6, "B": 0.4, "C": 0.0})
+    tabla = construir_tabla_pesos_horizontal(["A", "B", "C"], ["A", "B", "C"], pesos)
+    assert "C" not in tabla.columns
+    assert tabla.loc["Peso (%)", "Total"] == "100.00%"
+
+
+def test_tabla_solo_muestra_activos_elegidos_en_multiselect():
+    """Si el usuario solo eligió A y B, la tabla no incluye C aunque esté en el universo."""
+    pesos = pd.Series({"A": 0.6, "B": 0.4})
     tabla = construir_tabla_pesos_horizontal(["A", "B", "C"], ["A", "B"], pesos)
     assert "C" not in tabla.columns
     assert tabla.loc["Peso (%)", "A"] == "60.00%"
@@ -59,6 +75,8 @@ def test_resultados_finales_tres_series():
         activos_seleccionados=["A", "B"],
         tasa_libre_riesgo_anual=0.04,
         valor_inicial=VALOR_INICIAL_DEFECTO,
+        ticker_benchmark="^GSPC",
     )
     assert datos.evolucion_benchmark is not None
     assert len(datos.evolucion_igual) == len(datos.evolucion_optimizado)
+    assert datos.ticker_benchmark == "^GSPC"

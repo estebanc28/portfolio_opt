@@ -13,13 +13,14 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# Periodicidad de los datos del proyecto (precios mensuales)
-MESES_POR_ANIO = 12
+# Factores de anualización (Fase 3: 12 mensual, 52 semanal, 252 diario)
+PERIODOS_POR_ANIO_DEFECTO = 12
+MESES_POR_ANIO = PERIODOS_POR_ANIO_DEFECTO  # alias retrocompatible
 
 
 def calcular_rendimientos(precios: pd.DataFrame) -> pd.DataFrame:
     """
-    Calcula rendimientos históricos mensuales a partir de precios.
+    Calcula rendimientos históricos por periodo a partir de precios.
 
     Usa rendimientos simples: r_t = P_t / P_{t-1} - 1
 
@@ -31,7 +32,7 @@ def calcular_rendimientos(precios: pd.DataFrame) -> pd.DataFrame:
     Retorna
     -------
     pd.DataFrame
-        Rendimientos mensuales (sin la primera fila NaN).
+        Rendimientos por periodo (sin la primera fila NaN).
     """
     if precios.empty:
         raise ValueError("El DataFrame de precios está vacío.")
@@ -41,28 +42,27 @@ def calcular_rendimientos(precios: pd.DataFrame) -> pd.DataFrame:
 
 
 def _anualizar_rendimiento_multiplicativo(
-    rendimientos_mensuales: pd.Series,
-    meses_por_anio: int = MESES_POR_ANIO,
+    rendimientos_periodo: pd.Series,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> float:
     """
     Anualiza el rendimiento esperado con capitalización compuesta.
 
-    Fórmula (NO es multiplicar el promedio mensual por 12):
-        r_anual = [ Π (1 + r_mensual) ]^(12 / n) - 1
-
-    donde n es el número de observaciones mensuales.
+    Fórmula: r_anual = [ Π (1 + r_t) ]^(P / n) - 1, con P = periodos por año.
     """
-    if rendimientos_mensuales.empty:
+    if rendimientos_periodo.empty:
         raise ValueError("La serie de rendimientos está vacía.")
 
-    n = len(rendimientos_mensuales)
-    producto_uno_mas_r = float((1.0 + rendimientos_mensuales).prod())
-    return producto_uno_mas_r ** (meses_por_anio / n) - 1.0
+    n = len(rendimientos_periodo)
+    producto_uno_mas_r = float((1.0 + rendimientos_periodo).prod())
+    return producto_uno_mas_r ** (periodos_por_anio / n) - 1.0
 
 
 def calcular_rendimiento_esperado_anualizado(
     rendimientos: pd.DataFrame | pd.Series,
-    meses_por_anio: int = MESES_POR_ANIO,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
+    *,
+    meses_por_anio: int | None = None,
 ) -> pd.Series | float:
     """
     Calcula el rendimiento esperado anualizado por activo (fórmula multiplicativa).
@@ -71,30 +71,36 @@ def calcular_rendimiento_esperado_anualizado(
     ----------
     rendimientos : pd.DataFrame | pd.Series
         Rendimientos mensuales históricos.
-    meses_por_anio : int
-        Factor de anualización (12 para datos mensuales).
+    periodos_por_anio : int
+        Factor de anualización (12, 52 o 252 según la frecuencia).
+    meses_por_anio : int | None
+        Alias retrocompatible; si se indica, sustituye a periodos_por_anio.
 
     Retorna
     -------
     pd.Series | float
         Rendimiento anualizado por columna, o escalar si la entrada es una Serie.
     """
+    p = meses_por_anio if meses_por_anio is not None else periodos_por_anio
+
     if isinstance(rendimientos, pd.Series):
-        return _anualizar_rendimiento_multiplicativo(rendimientos, meses_por_anio)
+        return _anualizar_rendimiento_multiplicativo(rendimientos, p)
 
     if rendimientos.empty:
         raise ValueError("El DataFrame de rendimientos está vacío.")
 
     return rendimientos.apply(
         _anualizar_rendimiento_multiplicativo,
-        meses_por_anio=meses_por_anio,
+        periodos_por_anio=p,
     )
 
 
 def calcular_volatilidad_anualizada(
     rendimientos: pd.DataFrame | pd.Series,
-    meses_por_anio: int = MESES_POR_ANIO,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
     grados_libertad: int = 1,
+    *,
+    meses_por_anio: int | None = None,
 ) -> pd.Series | float:
     """
     Calcula la volatilidad anualizada (fórmula multiplicativa estándar).
@@ -108,8 +114,10 @@ def calcular_volatilidad_anualizada(
     ----------
     rendimientos : pd.DataFrame | pd.Series
         Rendimientos mensuales históricos.
-    meses_por_anio : int
-        Número de meses por año (12 en este proyecto).
+    periodos_por_anio : int
+        Periodos por año (12, 52 o 252).
+    meses_por_anio : int | None
+        Alias retrocompatible.
     grados_libertad : int
         Grados de libertad para la desviación estándar muestral (default 1).
 
@@ -118,7 +126,8 @@ def calcular_volatilidad_anualizada(
     pd.Series | float
         Volatilidad anualizada por activo, o escalar si la entrada es una Serie.
     """
-    factor = float(np.sqrt(meses_por_anio))
+    p = meses_por_anio if meses_por_anio is not None else periodos_por_anio
+    factor = float(np.sqrt(p))
     vol_mensual = rendimientos.std(ddof=grados_libertad)
     return vol_mensual * factor
 
@@ -170,7 +179,7 @@ def calcular_matriz_correlacion(rendimientos: pd.DataFrame) -> pd.DataFrame:
 
 def calcular_metricas_activos(
     precios: pd.DataFrame,
-    meses_por_anio: int = MESES_POR_ANIO,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> pd.DataFrame:
     """
     Pipeline auxiliar de Fase 2: rendimientos y métricas anualizadas por activo.
@@ -181,8 +190,10 @@ def calcular_metricas_activos(
         rendimiento_esperado_anual, volatilidad_anual
     """
     rendimientos = calcular_rendimientos(precios)
-    retorno_anual = calcular_rendimiento_esperado_anualizado(rendimientos, meses_por_anio)
-    vol_anual = calcular_volatilidad_anualizada(rendimientos, meses_por_anio)
+    retorno_anual = calcular_rendimiento_esperado_anualizado(
+        rendimientos, periodos_por_anio
+    )
+    vol_anual = calcular_volatilidad_anualizada(rendimientos, periodos_por_anio)
 
     return pd.DataFrame(
         {
