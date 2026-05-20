@@ -25,7 +25,7 @@ El proyecto calcula un portafolio eficiente basado en la **Teoría Moderna de Po
 
 | Control | Descripción |
 |---------|-------------|
-| **Tickers** | Texto separado por `;` (máx. **20** en portafolio). Se normalizan a **MAYÚSCULAS** al escribir. |
+| **Tickers** | Texto separado por `;` (máx. **20** en portafolio). Se normalizan a **MAYÚSCULAS** al escribir. El campo usa **`autocomplete="off"`** en HTML para que el navegador no sugiera listas de valores usados antes en ese equipo (comportamiento sujeto al propio navegador). |
 | **Temporalidad** | `selectbox`: **Mensual**, **Semanal** o **Diaria**. |
 | **Fechas** | Inicio y fin del histórico. |
 | **Límites de rango** | Diaria: máx. **730 días** (~2 años). Semanal: máx. **12 años**. Mensual: sin tope estricto en UI. |
@@ -43,7 +43,7 @@ El proyecto calcula un portafolio eficiente basado en la **Teoría Moderna de Po
 | **Benchmark** | SPY, QQQ, IWM, DIA (no cuenta en el límite de 20). Entra en la firma de descarga. |
 | **Descargar datos de mercado** | Botón **arriba** (tras tickers, temporalidad, fechas y benchmark). Solo descarga y actualiza precios en sesión; si cambian parámetros de descarga respecto a la memoria, hay que volver a pulsarlo antes de confirmar abajo. |
 
-### 3.3 Universo y pesos — Modo A
+### 3.3 Universo y pesos forzados
 
 - Multiselect de activos válidos tras la descarga; tras cada **Descargar datos de mercado** se seleccionan por defecto **todos** los activos del nuevo universo (se reinicia la selección del widget).
 - **Un campo de % por cada activo descargado** (sin botón intermedio). Los pesos que cuentan para la suma y la validación son solo los de los activos **incluidos** en el multiselect.

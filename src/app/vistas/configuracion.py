@@ -2,7 +2,7 @@
 Configuración unificada del portafolio (Fases 2 y 3).
 
 Descarga Yahoo Finance (mensual/semanal/diaria), benchmark, selección de activos,
-pesos forzados (Modo A), tasa libre de riesgo: descarga arriba y confirmación al final.
+pesos forzados opcionales, tasa libre de riesgo: descarga arriba y confirmación al final.
 """
 
 from __future__ import annotations
@@ -194,7 +194,7 @@ def _mostrar_pesos_forzados(
                 step=0.5,
                 format="%.2f",
                 key=f"peso_forzado_{ticker}_{sufijo_clave}",
-                help="0 % = sin peso forzado; Markowitz asignará el resto (Modo A).",
+                help="0 % = sin peso forzado; Markowitz asignará el resto.",
             )
         if peso_pct > 0:
             pesos_forzados[ticker] = peso_pct / 100.0
@@ -250,8 +250,10 @@ def mostrar() -> None:
     st.text_input(
         "Tickers del portafolio (separados por `;`)",
         placeholder="AAPL;MSFT;GOOGL;DE;JNJ",
-        help="Máximo 20 tickers. Se muestran en MAYÚSCULAS (símbolos Yahoo Finance).",
+        help="Máximo 20 tickers. Se muestran en MAYÚSCULAS (símbolos Yahoo Finance). "
+        "El autocompletado del navegador está desactivado para este campo.",
         key=CLAVE_TEXTO_TICKERS,
+        autocomplete="off",
     )
     texto_tickers = str(st.session_state.get(CLAVE_TEXTO_TICKERS, ""))
 
@@ -397,7 +399,7 @@ def mostrar() -> None:
         )
 
     if activos_disponibles:
-        st.subheader("3. Universo y pesos forzados (Modo A)")
+        st.subheader("3. Universo y pesos forzados")
         st.caption(
             f"{len(activos_disponibles)} activo(s) con datos válidos en la última descarga. "
             "Los porcentajes opcionales aplican solo a los activos que deje incluidos en el análisis."
