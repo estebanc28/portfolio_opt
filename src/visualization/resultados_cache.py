@@ -7,7 +7,6 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from src.config import TICKER_BENCHMARK
 from src.finance.resultados import VALOR_INICIAL_DEFECTO, calcular_resultados_finales
 from src.visualization.evolucion import crear_grafico_evolucion_historica
 
@@ -19,7 +18,9 @@ def obtener_resultados_finales(
     activos_seleccionados: tuple[str, ...],
     pesos_forzados: tuple[tuple[str, float], ...],
     tasa_libre_riesgo_anual: float,
-    _version: int = 4,
+    ticker_benchmark: str,
+    periodos_por_anio: int,
+    _version: int = 9,
 ) -> tuple[
     pd.DataFrame,
     object,
@@ -29,9 +30,13 @@ def obtener_resultados_finales(
     float,
     float,
     float | None,
+    list[str],
 ]:
     """
     Calcula y cachea tabla de pesos, gráfico y valores finales de cada escenario.
+
+    Retorna también ``sin_peso_final``: activos seleccionados con peso optimizado 0 %
+    (no entran en la tabla de pesos).
     """
     forzados = dict(pesos_forzados)
     datos = calcular_resultados_finales(
@@ -40,8 +45,9 @@ def obtener_resultados_finales(
         activos_seleccionados=list(activos_seleccionados),
         tasa_libre_riesgo_anual=tasa_libre_riesgo_anual,
         pesos_forzados=forzados,
-        ticker_benchmark=TICKER_BENCHMARK,
+        ticker_benchmark=ticker_benchmark,
         valor_inicial=VALOR_INICIAL_DEFECTO,
+        periodos_por_anio=periodos_por_anio,
     )
     figura = crear_grafico_evolucion_historica(datos)
 
@@ -64,6 +70,12 @@ def obtener_resultados_finales(
         if float(datos.pesos_optimizados[t]) > 0
     }
 
+    sin_peso_final = sorted(
+        t
+        for t in datos.activos_seleccionados
+        if float(datos.pesos_optimizados[t]) < 1e-10
+    )
+
     return (
         datos.tabla_pesos,
         figura,
@@ -73,6 +85,7 @@ def obtener_resultados_finales(
         final_igual,
         final_opt,
         final_bench,
+        sin_peso_final,
     )
 
 

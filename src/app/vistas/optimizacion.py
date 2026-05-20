@@ -17,6 +17,10 @@ COLOR_FRONTERA = "#00e5ff"
 COLOR_CML = "#ffd54f"
 
 
+def _periodos_por_anio() -> int:
+    return int(st.session_state.get("periodos_por_anio", 12))
+
+
 def _precios_activos_seleccionados():
     """Precios históricos solo de los activos confirmados en la Funcionalidad 1."""
     if not st.session_state.get("config_confirmada"):
@@ -46,6 +50,7 @@ def _mostrar_tabla_comparativa(precios, activos_clave: tuple[str, ...]) -> None:
         activos_clave,
         forzados_clave,
         tasa_anual,
+        _periodos_por_anio(),
     )
 
     st.session_state["pesos_portafolio_igual"] = pesos_igual
@@ -75,6 +80,7 @@ def _mostrar_frontera_eficiente(precios, activos_clave: tuple[str, ...]) -> None
         activos_clave,
         forzados_clave,
         tasa_anual,
+        _periodos_por_anio(),
     )
     st.plotly_chart(figura, use_container_width=True)
     _mostrar_interpretacion_grafico()
@@ -124,14 +130,14 @@ def mostrar() -> None:
 
     if not st.session_state.get("datos_cargados"):
         st.warning(
-            "Primero complete la **Carga y Preparación de Datos** "
+            "Primero complete la **Configuración del Portafolio** "
             "en el menú lateral."
         )
         return
 
     if not st.session_state.get("config_confirmada"):
         st.warning(
-            "Debe confirmar la configuración en **Inputs y Configuración Inicial** "
+            "Debe confirmar la configuración en **Configuración del Portafolio** "
             "antes de visualizar las correlaciones."
         )
         return

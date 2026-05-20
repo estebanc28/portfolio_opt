@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from src.finance.metricas import calcular_rendimientos
+from src.finance.metricas import PERIODOS_POR_ANIO_DEFECTO, calcular_rendimientos
 from src.finance.portafolio import (
     filtrar_y_renormalizar_pesos,
     optimizar_max_sharpe,
@@ -31,6 +31,7 @@ class DatosResultadosFinales:
     evolucion_igual: pd.Series
     evolucion_optimizado: pd.Series
     evolucion_benchmark: pd.Series | None
+    ticker_benchmark: str
 
 
 def _pesos_en_universo(
@@ -53,17 +54,21 @@ def construir_tabla_pesos_horizontal(
     pesos_optimizados: pd.Series,
 ) -> pd.DataFrame:
     """
-    Tabla horizontal: una fila solo con activos cuyo peso final es distinto de 0 %.
+    Tabla horizontal: solo activos seleccionados con peso final estrictamente positivo.
+
+    Los que quedan en 0 % no se muestran aquí; se listan aparte en la vista de resultados.
     """
     pesos_completos = _pesos_en_universo(
         activos_validos, activos_seleccionados, pesos_optimizados
     )
+    orden = sorted(activos_seleccionados)
     fila = {
-        ticker: f"{pesos_completos[ticker] * 100:.2f}%"
-        for ticker in sorted(activos_validos)
-        if pesos_completos[ticker] > 0
+        ticker: f"{float(pesos_completos.get(ticker, 0.0)) * 100:.2f}%"
+        for ticker in orden
+        if float(pesos_completos.get(ticker, 0.0)) > 0
     }
-    fila["Total"] = f"{pesos_completos.sum() * 100:.2f}%"
+    suma_mostrada = sum(float(pesos_completos.get(t, 0.0)) for t in orden)
+    fila["Total"] = f"{suma_mostrada * 100:.2f}%"
     return pd.DataFrame([fila], index=["Peso (%)"])
 
 
@@ -97,7 +102,7 @@ def calcular_evolucion_benchmark(
     ticker_benchmark: str,
     valor_inicial: float = VALOR_INICIAL_DEFECTO,
 ) -> pd.Series | None:
-    """Evolución acumulada del benchmark (p. ej. S&P 500)."""
+    """Evolución acumulada del benchmark (columna ``ticker_benchmark`` en ``precios``)."""
     if ticker_benchmark not in precios.columns:
         return None
 
@@ -114,8 +119,9 @@ def calcular_resultados_finales(
     activos_seleccionados: list[str],
     tasa_libre_riesgo_anual: float,
     pesos_forzados: dict[str, float] | None = None,
-    ticker_benchmark: str = "^GSPC",
+    ticker_benchmark: str = "SPY",
     valor_inicial: float = VALOR_INICIAL_DEFECTO,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> DatosResultadosFinales:
     """Calcula tabla de pesos y series de valor acumulado para la Funcionalidad 4."""
     seleccionados = [a for a in activos_seleccionados if a in precios.columns]
@@ -127,7 +133,9 @@ def calcular_resultados_finales(
     rendimientos = calcular_rendimientos(precios_sel)
 
     w_igual = pesos_iguales(seleccionados, forzados)
-    w_opt = optimizar_max_sharpe(rendimientos, tasa_libre_riesgo_anual, forzados)
+    w_opt = optimizar_max_sharpe(
+        rendimientos, tasa_libre_riesgo_anual, forzados, periodos_por_anio
+    )
     w_opt, no_utilizados = filtrar_y_renormalizar_pesos(
         w_opt, seleccionados, pesos_forzados=forzados
     )
@@ -149,4 +157,5 @@ def calcular_resultados_finales(
         evolucion_igual=ev_igual,
         evolucion_optimizado=ev_opt,
         evolucion_benchmark=ev_bench,
+        ticker_benchmark=ticker_benchmark,
     )

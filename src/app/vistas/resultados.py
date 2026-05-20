@@ -5,6 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.app.scroll import scroll_al_inicio
+from src.config import TICKER_BENCHMARK
 from src.finance.resultados import VALOR_INICIAL_DEFECTO
 from src.visualization.resultados_cache import obtener_resultados_finales
 
@@ -74,7 +75,8 @@ def _mostrar_pregunta_inversion(
         ("Portafolio optimizado", final_opt),
     ]
     if final_bench is not None:
-        escenarios.append(("S&P 500 (Benchmark)", final_bench))
+        etiqueta_bench = st.session_state.get("benchmark", TICKER_BENCHMARK) or "Benchmark"
+        escenarios.append((f"{etiqueta_bench} (Benchmark)", final_bench))
 
     for col, (etiqueta, valor) in zip(columnas, escenarios, strict=False):
         with col:
@@ -128,14 +130,14 @@ def mostrar() -> None:
 
     if not st.session_state.get("datos_cargados"):
         st.warning(
-            "Primero complete la **Carga y Preparación de Datos** "
+            "Primero complete la **Configuración del Portafolio** "
             "en el menú lateral."
         )
         return
 
     if not st.session_state.get("config_confirmada"):
         st.warning(
-            "Debe confirmar la configuración en **Inputs y Configuración Inicial** "
+            "Debe confirmar la configuración en **Configuración del Portafolio** "
             "antes de ver los resultados finales."
         )
         return
@@ -149,16 +151,18 @@ def mostrar() -> None:
         return
 
     if not activos_seleccionados:
-        st.info("Seleccione al menos un activo en **Inputs y Configuración Inicial**.")
+        st.info("Seleccione al menos un activo en **Configuración del Portafolio**.")
         return
 
     seleccionados_con_precio = [a for a in activos_seleccionados if a in precios.columns]
     if not seleccionados_con_precio:
-        st.info("Ningún activo seleccionado tiene precios en el archivo cargado.")
+        st.info("Ningún activo seleccionado tiene precios en los datos descargados.")
         return
 
     pesos_forzados = st.session_state.get("pesos_forzados", {})
     tasa_anual = float(st.session_state.get("tasa_libre_riesgo_anual", 0.04))
+    ticker_benchmark = st.session_state.get("benchmark") or TICKER_BENCHMARK
+    periodos_por_anio = int(st.session_state.get("periodos_por_anio", 12))
 
     with st.spinner("Calculando pesos y evolución histórica..."):
         (
@@ -170,12 +174,15 @@ def mostrar() -> None:
             final_igual,
             final_opt,
             final_bench,
+            sin_peso_final,
         ) = obtener_resultados_finales(
             precios,
             tuple(sorted(activos_validos)),
             tuple(sorted(seleccionados_con_precio)),
             tuple(sorted(pesos_forzados.items())),
             tasa_anual,
+            ticker_benchmark,
+            periodos_por_anio,
         )
 
     # 1. Tabla horizontal de pesos (arriba)
@@ -192,22 +199,39 @@ def mostrar() -> None:
         st.caption(f"Pesos fijos respetados en la optimización: {forzados_txt}")
 
     st.caption(
-        "Posiciones con peso inferior al **0,1 %** tras la optimización se tratan como "
-        "**0 %** y no forman parte del portafolio final."
+        "La tabla muestra solo posiciones con peso **mayor que 0 %** en el portafolio "
+        "optimizado final. Los activos seleccionados que quedaron en **0 %** se indican "
+        "en **No seleccionados para el análisis** (descartes del óptimo)."
     )
 
-    col_a, col_b = st.columns(2)
+    excluidos_datos = list(st.session_state.get("activos_excluidos", []))
+    if excluidos_datos:
+        st.warning(
+            "**Activos descartados en la descarga** (datos incompletos o sin serie en Yahoo): "
+            + ", ".join(sorted(excluidos_datos))
+        )
+
+    col_a, col_b, col_c = st.columns(3)
     with col_a:
-        st.markdown("#### Activos considerados pero no utilizados en el portafolio óptimo")
+        st.markdown("#### Sin peso en el portafolio óptimo (< 0,1 %)")
         if no_utilizados:
             st.write(", ".join(sorted(no_utilizados)))
         else:
             st.write("*Ninguno*")
     with col_b:
-        st.markdown("#### Activos excluidos por el usuario")
-        excluidos = sorted(set(activos_validos) - set(seleccionados_con_precio))
-        if excluidos:
-            st.write(", ".join(excluidos))
+        st.markdown("#### No seleccionados para el análisis")
+        n_desc = len(sin_peso_final)
+        if sin_peso_final:
+            st.metric("Descartes (peso 0 % en el óptimo)", n_desc)
+            st.caption("Tickers seleccionados que no recibieron peso en el portafolio final:")
+            st.write(", ".join(sin_peso_final))
+        else:
+            st.metric("Descartes (peso 0 % en el óptimo)", 0)
+            st.write("*Ninguno*")
+    with col_c:
+        st.markdown("#### Descartados al descargar datos")
+        if excluidos_datos:
+            st.write(", ".join(sorted(excluidos_datos)))
         else:
             st.write("*Ninguno*")
 

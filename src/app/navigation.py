@@ -8,16 +8,20 @@ from src.app.nav_styles import CSS_MENU_NAVEGACION
 
 OPCIONES_MENU: list[str] = [
     "Inicio",
-    "Carga y Preparación de Datos",
-    "Inputs y Configuración Inicial",
+    "Configuración del Portafolio",
     "Optimización y Frontera Eficiente",
     "Resultados Finales y Validación Histórica",
 ]
 
+# Migración desde menús de Fase 1
+_ALIASES_MENU: dict[str, str] = {
+    "Carga y Preparación de Datos": "Configuración del Portafolio",
+    "Inputs y Configuración Inicial": "Configuración del Portafolio",
+}
+
 ICONOS_MENU: dict[str, str] = {
     "Inicio": "🏠",
-    "Carga y Preparación de Datos": "📊",
-    "Inputs y Configuración Inicial": "⚙️",
+    "Configuración del Portafolio": "⚙️",
     "Optimización y Frontera Eficiente": "🎯",
     "Resultados Finales y Validación Histórica": "📋",
 }
@@ -30,7 +34,20 @@ def _etiqueta_menu(opcion: str) -> str:
     return f"{ICONOS_MENU[opcion]}  {opcion}"
 
 
+def _normalizar_opcion_menu(opcion: str) -> str:
+    return _ALIASES_MENU.get(opcion, opcion)
+
+
 def _inicializar_menu() -> None:
+    if CLAVE_MENU_SESION in st.session_state:
+        st.session_state[CLAVE_MENU_SESION] = _normalizar_opcion_menu(
+            st.session_state[CLAVE_MENU_SESION]
+        )
+    if CLAVE_RADIO_MENU in st.session_state:
+        st.session_state[CLAVE_RADIO_MENU] = _normalizar_opcion_menu(
+            st.session_state[CLAVE_RADIO_MENU]
+        )
+
     if CLAVE_MENU_SESION not in st.session_state:
         st.session_state[CLAVE_MENU_SESION] = OPCIONES_MENU[0]
     if st.session_state[CLAVE_MENU_SESION] not in OPCIONES_MENU:

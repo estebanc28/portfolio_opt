@@ -1,6 +1,6 @@
 # Portafolio de Inversión con Optimización de Markowitz
 
-Aplicación web interactiva para analizar, optimizar y validar portafolios de inversión a partir de precios históricos mensuales. Desarrollada en **Python** con **Streamlit**, implementa la teoría de Markowitz **sin depender de bibliotecas de optimización de terceros** (por ejemplo, PyPortfolioOpt): los cálculos de riesgo, rendimiento y frontera eficiente se realizan con **NumPy**, **Pandas** y **SciPy**.
+Aplicación web interactiva para analizar, optimizar y validar portafolios de inversión a partir de precios históricos mensuales, semanales o diarios. Desarrollada en **Python** con **Streamlit**, implementa la teoría de Markowitz **sin depender de bibliotecas de optimización de terceros** (por ejemplo, PyPortfolioOpt): los cálculos de riesgo, rendimiento y frontera eficiente se realizan con **NumPy**, **Pandas** y **SciPy**.
 
 El diseño visual sigue un **tema oscuro** inspirado en terminales financieras, con navegación por menú lateral entre las distintas etapas del análisis.
 
@@ -14,7 +14,7 @@ El diseño visual sigue un **tema oscuro** inspirado en terminales financieras, 
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Requisitos e instalación](#requisitos-e-instalación)
 - [Ejecución](#ejecución)
-- [Formato del archivo CSV](#formato-del-archivo-csv)
+- [Obtención de datos (Yahoo Finance)](#obtención-de-datos-yahoo-finance)
 - [Metodología financiera](#metodología-financiera)
 - [Pruebas](#pruebas)
 - [Documentación adicional](#documentación-adicional)
@@ -24,13 +24,14 @@ El diseño visual sigue un **tema oscuro** inspirado en terminales financieras, 
 
 ## Características principales
 
-| Sección | Descripción |
-|--------|-------------|
-| **Inicio** | Presentación del proyecto y guía para comenzar. |
-| **Carga y preparación de datos** | Carga del CSV (por defecto o archivo propio), validación de datos faltantes y exclusión automática de activos incompletos. |
-| **Inputs y configuración inicial** | Selección de activos, pesos forzados opcionales y tasa libre de riesgo anual (≈ 4 % por defecto). |
-| **Optimización y frontera eficiente** | Mapa de calor de correlaciones, tabla comparativa (pesos iguales vs optimizado), gráfico de frontera eficiente + CML e interpretación del gráfico. |
-| **Resultados finales y validación histórica** | Tabla de pesos del portafolio optimizado, gráfico de evolución con base $1,000 y comparación con el S&P 500. |
+
+| Sección                                       | Descripción                                                                                                                                        |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Inicio**                                    | Presentación del proyecto y guía para comenzar.                                                                                                    |
+| **Configuración del portafolio**              | Panel único: tickers (`;`, máx. 20), **temporalidad** (diaria/semanal/mensual), fechas, benchmark, tasa libre de riesgo, activos y pesos forzados. |
+| **Optimización y frontera eficiente**         | Mapa de calor de correlaciones, tabla comparativa (pesos iguales vs optimizado), gráfico de frontera eficiente + CML e interpretación del gráfico. |
+| **Resultados finales y validación histórica** | Tabla de pesos del portafolio optimizado, gráfico de evolución con base $1,000 y comparación con el benchmark elegido.                             |
+
 
 ### Detalles relevantes del modelo
 
@@ -49,28 +50,30 @@ Flujo recomendado en el menú lateral:
 
 ```
 Inicio
-  → Carga y Preparación de Datos
-  → Inputs y Configuración Inicial (confirmar configuración)
+  → Configuración del Portafolio
   → Optimización y Frontera Eficiente
   → Resultados Finales y Validación Histórica
 ```
 
-1. Cargar y validar el CSV.
-2. Elegir empresas, opcionalmente fijar pesos y definir la tasa libre de riesgo; confirmar.
+1. En **Configuración del Portafolio**: ingresar tickers, fechas, benchmark y tasa; descargar y confirmar en un solo paso.
+2. Ajustar activos y pesos forzados si lo desea; volver a confirmar (sin re-descargar si no cambió el período ni los tickers).
 3. Revisar correlaciones, métricas comparativas y frontera eficiente con CML.
-4. Consultar pesos finales, evolución histórica ($1,000 inicial) y benchmark S&P 500.
+4. Consultar pesos finales, evolución histórica ($1,000 inicial) y el benchmark seleccionado.
 
 ---
 
 ## Stack tecnológico
 
-| Tecnología | Uso |
-|------------|-----|
-| **Python 3.10+** | Lenguaje base (probado con 3.11–3.14) |
-| **Streamlit** | Interfaz web y estado de sesión |
-| **Plotly** | Gráficos interactivos (correlación, frontera, evolución) |
-| **Pandas / NumPy** | Datos y álgebra lineal |
-| **SciPy** | Optimización cuadrática (frontera y máximo Sharpe) |
+
+| Tecnología         | Uso                                                      |
+| ------------------ | -------------------------------------------------------- |
+| **Python 3.10+**   | Lenguaje base (probado con 3.11–3.14)                    |
+| **Streamlit**      | Interfaz web y estado de sesión                          |
+| **Plotly**         | Gráficos interactivos (correlación, frontera, evolución) |
+| **Pandas / NumPy** | Datos y álgebra lineal                                   |
+| **SciPy**          | Optimización cuadrática (frontera y máximo Sharpe)       |
+| **yfinance**       | Descarga de precios históricos desde Yahoo Finance       |
+
 
 ---
 
@@ -78,7 +81,7 @@ Inicio
 
 ```
 portafolio/
-├── portfolio.py              # Punto de entrada de la aplicación Streamlit
+├── portfolio_opt.py          # Punto de entrada de la aplicación Streamlit
 ├── requirements.txt          # Dependencias
 ├── README.md
 ├── documentos/
@@ -90,9 +93,10 @@ portafolio/
 │   │   ├── navigation.py     # Menú lateral
 │   │   ├── theme.py          # Estilos globales (tema oscuro)
 │   │   ├── scroll.py         # Scroll al inicio en vistas largas
-│   │   └── vistas/           # Pantallas por funcionalidad
+│   │   └── vistas/           # configuracion.py (panel unificado), optimización, resultados
 │   ├── data/
-│   │   └── loader.py         # Carga y validación del CSV
+│   │   ├── loader.py         # Carga CSV legada (tests)
+│   │   └── yfinance_loader.py  # Descarga Yahoo Finance
 │   ├── finance/
 │   │   ├── metricas.py       # Rendimientos, volatilidad, correlación
 │   │   ├── markowitz.py      # μ, Σ, optimización MV, métricas unificadas
@@ -145,32 +149,29 @@ pip install -r requirements.txt
 Desde la raíz del proyecto:
 
 ```bash
-streamlit run portfolio.py
+streamlit run portfolio_opt.py
 ```
 
 La aplicación se abrirá en el navegador (por defecto `http://localhost:8501`).
 
 ---
 
-## Formato del archivo CSV
+## Obtención de datos (Yahoo Finance)
 
-El archivo debe incluir:
+En **Configuración del Portafolio**:
 
-| Requisito | Detalle |
-|-----------|---------|
-| **Columna de fechas** | `Date` (formato interpretable por Pandas) |
-| **Activos** | Hasta 20 tickers de empresas con precios mensuales |
-| **Benchmark** | Columna `^GSPC` (S&P 500) |
-| **Frecuencia** | Datos **mensuales** (el proyecto espera ~60 observaciones) |
-| **Calidad** | Sin valores faltantes por columna; las columnas incompletas se excluyen automáticamente |
 
-Ejemplo de encabezado:
+| Requisito                  | Detalle                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| **Tickers del portafolio** | Separados por `;` (ej. `AAPL;MSFT;GOOGL`), máximo **20**              |
+| **Benchmark**              | Elegir en el menú: SPY, QQQ, IWM o DIA (no cuenta en el límite de 20) |
+| **Frecuencia**             | **Mensual** (`1mo`), **semanal** (`1wk`) o **diaria** (`1d`)          |
+| **Período**                | Fecha de inicio y fin (diaria: máx. ~730 días)                        |
+| **Anualización**           | 12, 52 o 252 periodos/año según la frecuencia elegida                 |
+| **Calidad**                | Columnas con datos faltantes se excluyen automáticamente              |
 
-```text
-Date,AAPL,AMZN,...,XOM,^GSPC
-```
 
-Puedes usar el archivo incluido en `documentos/portafolio_21_activos.csv` o subir tu propio CSV en la sección de carga.
+El archivo `documentos/portafolio_21_activos.csv` se conserva como referencia del curso y para pruebas del cargador CSV legado.
 
 ---
 
@@ -178,39 +179,39 @@ Puedes usar el archivo incluido en `documentos/portafolio_21_activos.csv` o subi
 
 ### Rendimientos y anualización
 
-- Rendimientos mensuales simples: \( r_t = P_t / P_{t-1} - 1 \).
+- Rendimientos mensuales simples:  r_t = P_t / P_{t-1} - 1 .
 - Rendimiento anual esperado (enfoque compuesto para series): capitalización sobre la ventana histórica.
-- Volatilidad anual: desviación mensual × \( \sqrt{12} \).
+- Volatilidad anual: desviación mensual ×  \sqrt{12} .
 
 ### Espacio Markowitz (μ–Σ)
 
 Usado de forma consistente en frontera, tabla comparativa y tooltips:
 
-- \( \mu_i = (1 + \bar{r}_{i,\text{mensual}})^{12} - 1 \)
-- \( \Sigma \) anual = matriz de covarianza mensual × 12
-- Rendimiento del portafolio: \( \mu_p = w^\top \mu \)
-- Volatilidad: \( \sigma_p = \sqrt{w^\top \Sigma w} \)
-- **Sharpe:** \( (\mu_p - r_f) / \sigma_p \)
+-  \mu_i = (1 + \bar{r}_{i,\text{mensual}})^{12} - 1 
+-  \Sigma  anual = matriz de covarianza mensual × 12
+- Rendimiento del portafolio:  \mu_p = w^\top \mu 
+- Volatilidad:  \sigma_p = \sqrt{w^\top \Sigma w} 
+- **Sharpe:**  (\mu_p - r_f) / \sigma_p 
 
 ### Frontera eficiente
 
-- 100 puntos entre \( \min(\mu) \) y \( \max(\mu) \) por activo.
+- 100 puntos entre  \min(\mu)  y  \max(\mu)  por activo.
 - Para cada rendimiento objetivo se minimiza la varianza (SciPy, SLSQP).
-- **CML:** recta tangente al portafolio de máximo Sharpe, extendida hasta \( 2 \times \sigma \) del portafolio tangente.
+- **CML:** recta tangente al portafolio de máximo Sharpe, extendida hasta  2 \times \sigma  del portafolio tangente.
 
 ### Portafolio optimizado final
 
 1. Maximización de Sharpe con restricciones y pesos forzados.
-2. Eliminación de pesos &lt; 0,1 % (salvo pesos fijos del usuario).
+2. Eliminación de pesos < 0,1 % (salvo pesos fijos del usuario).
 3. Renormalización a 100 %.
 
 ### Validación histórica
 
-Simulación con **$1,000** al inicio del período del CSV:
+Simulación con **$1,000** al inicio del período descargado:
 
 - Portafolio de pesos iguales (entre activos seleccionados).
 - Portafolio optimizado (con restricciones).
-- S&P 500 (`^GSPC`) como benchmark.
+- Benchmark elegido (SPY, QQQ, IWM o DIA).
 
 ---
 
@@ -222,7 +223,7 @@ Ejecutar desde la raíz del proyecto:
 python -m pytest tests/ -q
 ```
 
-Incluye pruebas de métricas, portafolio, frontera eficiente, resultados, formato de texto y coherencia del Sharpe entre tabla y gráfico.
+Incluye pruebas de métricas, portafolio, frontera eficiente, resultados, cargador yfinance (mock), formato de texto y coherencia del Sharpe entre tabla y gráfico.
 
 ---
 
@@ -230,7 +231,7 @@ Incluye pruebas de métricas, portafolio, frontera eficiente, resultados, format
 
 La especificación funcional completa (objetivos, acciones por pantalla y criterios de diseño) está en:
 
-**[`documentos/funcionalidades_proyecto.md`](documentos/funcionalidades_proyecto.md)**
+`**[documentos/funcionalidades_proyecto.md](documentos/funcionalidades_proyecto.md)**`
 
 ---
 

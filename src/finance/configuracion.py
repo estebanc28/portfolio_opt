@@ -1,12 +1,15 @@
 """
-Configuración del portafolio (Funcionalidad 1): validación y conversión de tasas.
+Configuración del portafolio: validación y conversión de tasas por frecuencia.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.config import TASA_LIBRE_RIESGO_DEFAULT_ANUAL
+from src.finance.periodicidad import FRECUENCIA_MENSUAL
+
+# Definido aquí para evitar importación circular con src.config
+TASA_LIBRE_RIESGO_DEFAULT_ANUAL = 0.04
 
 
 @dataclass(frozen=True)
@@ -16,16 +19,23 @@ class ConfiguracionPortafolio:
     activos_seleccionados: list[str]
     pesos_forzados: dict[str, float]
     tasa_libre_riesgo_anual: float
-    tasa_libre_riesgo_mensual: float
+    periodos_por_anio: int
+    tasa_libre_riesgo_periodo: float
+
+    @property
+    def tasa_libre_riesgo_mensual(self) -> float:
+        """Alias cuando la frecuencia es mensual (retrocompatibilidad)."""
+        return self.tasa_libre_riesgo_periodo
+
+
+def anual_a_periodo(tasa_anual: float, periodos_por_anio: int) -> float:
+    """Convierte tasa anual efectiva a tasa por periodo: (1 + r_a)^(1/P) - 1."""
+    return (1.0 + tasa_anual) ** (1.0 / periodos_por_anio) - 1.0
 
 
 def anual_a_mensual(tasa_anual: float) -> float:
-    """
-    Convierte una tasa anual efectiva a tasa mensual equivalente.
-
-    Fórmula: (1 + r_anual)^(1/12) - 1
-    """
-    return (1.0 + tasa_anual) ** (1.0 / 12.0) - 1.0
+    """Equivalente mensual (12 periodos por año)."""
+    return anual_a_periodo(tasa_anual, FRECUENCIA_MENSUAL.periodos_por_anio)
 
 
 def validar_configuracion(
@@ -34,11 +44,7 @@ def validar_configuracion(
     pesos_forzados: dict[str, float],
     tasa_libre_riesgo_anual: float,
 ) -> tuple[bool, str]:
-    """
-    Valida el universo de activos, pesos forzados y tasa libre de riesgo.
-
-    Retorna (es_valida, mensaje_error).
-    """
+    """Valida el universo de activos, pesos forzados y tasa libre de riesgo."""
     if not activos_disponibles:
         return False, "No hay activos disponibles. Complete primero la carga de datos."
 
@@ -78,8 +84,9 @@ def construir_configuracion(
     activos_seleccionados: list[str],
     pesos_forzados: dict[str, float],
     tasa_libre_riesgo_anual: float | None = None,
+    periodos_por_anio: int = FRECUENCIA_MENSUAL.periodos_por_anio,
 ) -> ConfiguracionPortafolio:
-    """Crea la configuración con tasa mensual calculada automáticamente."""
+    """Crea la configuración con tasa por periodo según la frecuencia elegida."""
     tasa_anual = (
         tasa_libre_riesgo_anual
         if tasa_libre_riesgo_anual is not None
@@ -89,5 +96,6 @@ def construir_configuracion(
         activos_seleccionados=list(activos_seleccionados),
         pesos_forzados=dict(pesos_forzados),
         tasa_libre_riesgo_anual=tasa_anual,
-        tasa_libre_riesgo_mensual=anual_a_mensual(tasa_anual),
+        periodos_por_anio=periodos_por_anio,
+        tasa_libre_riesgo_periodo=anual_a_periodo(tasa_anual, periodos_por_anio),
     )

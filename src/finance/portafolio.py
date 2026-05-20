@@ -17,7 +17,7 @@ from src.finance.markowitz import (
     optimizar_max_sharpe_mv,
 )
 from src.finance.metricas import (
-    MESES_POR_ANIO,
+    PERIODOS_POR_ANIO_DEFECTO,
     calcular_rendimiento_esperado_anualizado,
     calcular_rendimientos,
     calcular_volatilidad_anualizada,
@@ -79,13 +79,16 @@ def calcular_metricas_portafolio(
     pesos: np.ndarray,
     tasa_libre_riesgo_anual: float,
     activos: list[str] | None = None,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> MetricasPortafolio:
     """Calcula rendimiento, volatilidad y Sharpe anualizados del portafolio."""
     etiquetas = activos if activos is not None else list(rendimientos.columns)
     serie = _rendimientos_portafolio(rendimientos, pesos)
 
-    rendimiento = float(calcular_rendimiento_esperado_anualizado(serie))
-    volatilidad = float(calcular_volatilidad_anualizada(serie))
+    rendimiento = float(
+        calcular_rendimiento_esperado_anualizado(serie, periodos_por_anio)
+    )
+    volatilidad = float(calcular_volatilidad_anualizada(serie, periodos_por_anio))
 
     if volatilidad > 0:
         sharpe = (rendimiento - tasa_libre_riesgo_anual) / volatilidad
@@ -104,6 +107,7 @@ def optimizar_max_sharpe(
     rendimientos: pd.DataFrame,
     tasa_libre_riesgo_anual: float,
     pesos_forzados: dict[str, float] | None = None,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> np.ndarray:
     """
     Maximiza la razón de Sharpe (anual) en espacio μ–Σ (misma lógica que la frontera).
@@ -116,7 +120,7 @@ def optimizar_max_sharpe(
     if sum(forzados.values()) > 1.0 + 1e-9:
         raise ValueError("La suma de pesos forzados supera el 100%.")
 
-    mu, sigma = calcular_mu_sigma_anual(rendimientos)
+    mu, sigma = calcular_mu_sigma_anual(rendimientos, periodos_por_anio)
     return optimizar_max_sharpe_mv(mu, sigma, tasa_libre_riesgo_anual, activos, forzados)
 
 
@@ -175,6 +179,7 @@ def construir_tabla_comparativa(
     precios: pd.DataFrame,
     tasa_libre_riesgo_anual: float,
     pesos_forzados: dict[str, float] | None = None,
+    periodos_por_anio: int = PERIODOS_POR_ANIO_DEFECTO,
 ) -> tuple[pd.DataFrame, MetricasPortafolio, MetricasPortafolio]:
     """
     Genera la tabla comparativa entre portafolio de pesos iguales y optimizado.
@@ -185,10 +190,12 @@ def construir_tabla_comparativa(
     activos = list(rendimientos.columns)
     forzados = pesos_forzados or {}
 
-    mu, sigma = calcular_mu_sigma_anual(rendimientos)
+    mu, sigma = calcular_mu_sigma_anual(rendimientos, periodos_por_anio)
 
     w_igual = pesos_iguales(activos, forzados)
-    w_opt = optimizar_max_sharpe(rendimientos, tasa_libre_riesgo_anual, forzados)
+    w_opt = optimizar_max_sharpe(
+        rendimientos, tasa_libre_riesgo_anual, forzados, periodos_por_anio
+    )
     w_opt, _ = filtrar_y_renormalizar_pesos(w_opt, activos, pesos_forzados=forzados)
 
     ret_i, vol_i, sharpe_i = calcular_metricas_mv(

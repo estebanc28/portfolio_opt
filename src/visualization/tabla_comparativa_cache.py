@@ -16,7 +16,8 @@ def obtener_tabla_comparativa(
     activos: tuple[str, ...],
     pesos_forzados: tuple[tuple[str, float], ...],
     tasa_libre_riesgo_anual: float,
-    _version: int = 2,
+    periodos_por_anio: int,
+    _version: int = 3,
 ) -> tuple[pd.DataFrame, dict[str, float], dict[str, float]]:
     """
     Calcula y cachea la tabla comparativa y los pesos de ambos escenarios.
@@ -29,6 +30,7 @@ def obtener_tabla_comparativa(
         sub,
         tasa_libre_riesgo_anual,
         forzados,
+        periodos_por_anio,
     )
 
     return (
